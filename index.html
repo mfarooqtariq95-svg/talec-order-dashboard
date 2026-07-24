@@ -178,7 +178,7 @@
 
 <header>
   <h1>TALEC — <span>Order Messages</span></h1>
-  <button class="settings-toggle" id="settingsToggle">⚙ Setup</button>
+  <button class="settings-toggle" id="settingsToggle" style="display:none;">⚙ Setup</button>
 </header>
 
 <div id="settingsPanel">
@@ -239,12 +239,20 @@
     setTimeout(() => t.classList.remove('show'), 1600);
   }
 
-  function openSettingsIfUnconfigured() {
-    if (!getBackendUrl() || !getApiKey()) {
-      $('#settingsPanel').classList.add('open');
-    }
+  // Setup is hidden from normal use (staff shouldn't see or be tempted to touch the access
+  // key). Only reachable via ?setup=1 in the URL, which the admin uses once per device.
+  const setupAllowed = new URLSearchParams(location.search).has('setup');
+
+  function openSettings() {
+    $('#settingsToggle').style.display = '';
+    $('#settingsPanel').classList.add('open');
     $('#backendUrl').value = getBackendUrl();
     $('#apiKey').value = getApiKey();
+  }
+
+  if (setupAllowed) {
+    $('#settingsToggle').style.display = '';
+    if (!getBackendUrl() || !getApiKey()) openSettings();
   }
 
   $('#settingsToggle').addEventListener('click', () => {
@@ -281,7 +289,8 @@
     const backendUrl = getBackendUrl();
     const apiKey = getApiKey();
     if (!backendUrl || !apiKey) {
-      openSettingsIfUnconfigured();
+      if (setupAllowed) openSettings();
+      else showToast('Not set up on this device yet — contact your admin');
       return;
     }
     try {
@@ -365,7 +374,6 @@
     }
   }
 
-  openSettingsIfUnconfigured();
   loadOrders();
   autoRefreshTimer = setInterval(loadOrders, 20000);
 </script>
