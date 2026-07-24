@@ -311,7 +311,9 @@
     for (const order of orders) {
       const tr = document.createElement('tr');
 
-      const waLink = `https://wa.me/${order.phone}?text=${encodeURIComponent(order.message)}`;
+      // api.whatsapp.com (not wa.me) — wa.me has a known bug mangling multi-byte UTF-8
+      // (emoji) into "�" replacement characters when it redirects into the native app.
+      const waLink = `https://api.whatsapp.com/send?phone=${order.phone}&text=${encodeURIComponent(order.message)}`;
 
       tr.innerHTML = `
         <td>${fmtDate(order.date)}</td>
