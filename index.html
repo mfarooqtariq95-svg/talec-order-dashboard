@@ -212,6 +212,7 @@
           <th>Date</th>
           <th>Order #</th>
           <th>Customer / Phone</th>
+          <th>Price</th>
           <th>Message</th>
           <th>Actions</th>
           <th>Status</th>
@@ -329,6 +330,7 @@
         <td>${fmtDate(order.date)}</td>
         <td><strong>${order.orderName || order.orderId}</strong></td>
         <td>${order.customerName || ''}<br><span style="color:var(--muted);font-size:12px">${order.phone}</span></td>
+        <td>${order.price != null ? `Rs ${order.price}` : '—'}</td>
         <td><div class="msg-preview">${order.message}</div></td>
         <td>
           <div class="actions">
