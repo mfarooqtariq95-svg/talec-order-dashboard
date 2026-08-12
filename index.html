@@ -124,6 +124,10 @@
     font-weight: 600;
   }
   tr + tr td { border-top: 1px solid var(--border); }
+  .order-id {
+    max-width: 140px;
+    word-break: break-all;
+  }
   .msg-preview {
     max-width: 260px;
     max-height: 60px;
@@ -396,7 +400,7 @@
 
       tr.innerHTML = `
         <td>${fmtDate(order.date)}</td>
-        <td><strong>${order.orderName || order.orderId}</strong></td>
+        <td class="order-id"><strong>${order.orderName || order.orderId}</strong></td>
         <td>${order.customerName || ''}<br><span style="color:var(--muted);font-size:12px">${order.phone}</span></td>
         <td>${order.price != null ? `Rs ${order.price}` : '—'}</td>
         <td><div class="msg-preview">${order.message}</div></td>
