@@ -231,7 +231,12 @@
   let currentStage = 'confirmation';
   let autoRefreshTimer = null;
 
-  function getBackendUrl() { return localStorage.getItem('talec_dash_backend_url') || ''; }
+  // Falls back to same-origin: when this page and the API share a domain (the
+  // orders.talec.pk deploy — Caddy reverse-proxies API paths on that same
+  // origin), a fresh device only needs the access key entered once, not the
+  // backend URL too. Explicit Setup entry (e.g. the old separate-origin
+  // GitHub Pages + Render split) still overrides this.
+  function getBackendUrl() { return localStorage.getItem('talec_dash_backend_url') || location.origin; }
   function getApiKey() { return localStorage.getItem('talec_dash_api_key') || ''; }
 
   function showToast(msg) {
