@@ -113,6 +113,27 @@ resolve `app.shopify.com` and `talec-whatsapp-webhook.onrender.com` at times (`R
 as a secondary DNS server in macOS Network settings. Worth knowing if backend/API calls
 mysteriously fail to resolve again on this network.
 
+## Planned feature: PostEx reattempt request (not yet built)
+
+PostEx's Merchant API supports requesting a delivery reattempt (or a return) directly on a
+failed/"Attempted" order — confirmed 2026-08-12 against the same API Integration Guide v4.1.9
+already used by `PostEx.gs`.
+
+- **Write:** `PUT https://api.postex.pk/service/integration/api/order/v2/save-shipper-advice`
+  — body `{ trackingNumber, statusId, remarks }`, `statusId: 2` = Retry Attempt,
+  `statusId: 1` = Return Requested. One endpoint powers both a "Reattempt" and "Return" button.
+- **Read:** `GET https://api.postex.pk/service/integration/api/order/v1/get-shipper-advice/{trackingNumber}`
+  — advice history for a tracking number, useful for showing status in the UI.
+
+Would let staff trigger a reattempt straight from the dashboard for orders sitting in
+"Attempted" status, instead of doing it manually elsewhere.
+
+**Before building:** this would be the dashboard's first *write* call to PostEx (current
+`PostEx.gs` integration is read-only). Per the standing rule on portal writes (an API
+mark-as-paid call once triggered 24 unintended WhatsApp messages), test one live call against
+a real tracking number first and confirm PostEx doesn't fire its own customer-facing
+SMS/notification as a side effect before wiring this into the UI.
+
 ## Known accepted limitation
 
 None currently outstanding — the Upstash migration above resolved the one open risk
