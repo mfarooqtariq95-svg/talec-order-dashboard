@@ -160,6 +160,31 @@
     font-weight: 500;
   }
   .status-btn.sent { background: var(--green-bg); color: var(--green); border-color: var(--green); }
+
+  /* Confirm/Dispatch delivery ticks (2026-08-13) — real per-message status, not just "we
+     attempted a send": grey = sent but not yet confirmed reaching the phone, green = confirmed
+     delivered/read, red = failed (includes a skipped send, e.g. 24h window closed — either way
+     the customer didn't get a message). The whole point is a failure is visible at a glance
+     without opening each order. */
+  .tick-col { text-align: center; width: 1%; white-space: nowrap; }
+  .tick {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 26px; height: 22px; padding: 0 4px; border-radius: 11px;
+    font-size: 12px; font-weight: 700; border: 1px solid var(--border);
+    color: var(--muted); background: transparent;
+  }
+  .tick.tick-none { color: var(--border); border-style: dashed; }
+  .tick.tick-sent { color: var(--muted); border-color: var(--muted); background: rgba(109,109,109,0.1); }
+  .tick.tick-delivered { color: var(--green); border-color: var(--green); background: var(--green-bg); }
+  .tick.tick-failed { color: #c62828; border-color: #c62828; background: rgba(198,40,40,0.1); }
+  @media (prefers-color-scheme: dark) { .tick.tick-failed { background: rgba(198,40,40,0.2); } }
+  .fail-banner {
+    display: none;
+    background: rgba(198,40,40,0.1); border: 1px solid #c62828; color: #c62828;
+    border-radius: 8px; padding: 10px 14px; font-size: 13px; font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .fail-banner.show { display: block; }
   .empty { padding: 40px; text-align: center; color: var(--muted); }
   .toast {
     position: fixed;
@@ -268,6 +293,8 @@
     <button class="refresh" id="refreshBtn">↻ Refresh</button>
   </div>
 
+  <div class="fail-banner" id="failBanner"></div>
+
   <div class="card">
     <table>
       <thead>
@@ -279,6 +306,8 @@
           <th>Message</th>
           <th>Actions</th>
           <th>Status</th>
+          <th class="tick-col" title="Order-confirmation WhatsApp message">Confirm</th>
+          <th class="tick-col" title="Dispatch WhatsApp message">Dispatch</th>
         </tr>
       </thead>
       <tbody id="rows"></tbody>
@@ -383,6 +412,18 @@
     }
   }
 
+  // Real per-message delivery tick (2026-08-13) — see server.js recordMessageSend/
+  // updateMessageStatus for what sets these. Deliberately distinguishes "we called the API"
+  // (grey) from "confirmed reaching the phone" (green) from "customer got nothing" (red) —
+  // that distinction is exactly what a real incident (TALEC18277) showed matters.
+  function renderTick(status) {
+    if (!status) return `<span class="tick tick-none" title="Not applicable yet">–</span>`;
+    if (status === 'delivered' || status === 'read') return `<span class="tick tick-delivered" title="Delivered">✓✓</span>`;
+    if (status === 'sent') return `<span class="tick tick-sent" title="Sent — not yet confirmed delivered">✓</span>`;
+    if (status === 'failed') return `<span class="tick tick-failed" title="Failed — customer did not receive this message">✕</span>`;
+    return `<span class="tick tick-none" title="${status}">?</span>`;
+  }
+
   function renderRows(orders) {
     const tbody = $('#rows');
     tbody.innerHTML = '';
@@ -390,6 +431,17 @@
     $('#countLabel').textContent = orders.length
       ? `${orders.length} order${orders.length === 1 ? '' : 's'} — ${orders.filter(o => !o.sent).length} pending`
       : '';
+
+    // Surface real send failures at the top, not buried in a scrollable table — the whole
+    // point of the ticks is catching "the system silently isn't working" at a glance.
+    const failCount = orders.filter(o => o.confirmationMsgStatus === 'failed' || o.dispatchMsgStatus === 'failed').length;
+    const banner = $('#failBanner');
+    if (failCount) {
+      banner.textContent = `⚠ ${failCount} order${failCount === 1 ? '' : 's'} on this tab have a message that failed to send — check the ✕ ticks below.`;
+      banner.classList.add('show');
+    } else {
+      banner.classList.remove('show');
+    }
 
     for (const order of orders) {
       const tr = document.createElement('tr');
@@ -415,6 +467,8 @@
             ${order.sent ? '✓ Sent' : 'Pending'}
           </button>
         </td>
+        <td class="tick-col">${renderTick(order.confirmationMsgStatus)}</td>
+        <td class="tick-col">${renderTick(order.dispatchMsgStatus)}</td>
       `;
 
       tr.querySelector('[data-action="copy"]').addEventListener('click', async () => {
